@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { userDetails } from "../../utility/userDetails";
 import { useRecoilState } from "recoil";
 import { atomBalanceState } from "../../store/atomBalance";
-import { atomLoadingState } from "../../store/atomLoading";
 import User from "./user";
 
 interface UserType {
@@ -22,8 +21,6 @@ const Dashboard = () => {
   const [firstName, setFirstName] = useState("user");
   const [balance, setBalance] = useRecoilState(atomBalanceState);
   const [users, setUsers] = useState([]);
-
-  const [isLoading, setIsLoading] = useRecoilState(atomLoadingState);
 
   const logout = () => {
     localStorage.clear();
@@ -47,15 +44,10 @@ const Dashboard = () => {
       setFirstName(firstName.user.firstName);
       setBalance(balance.balance);
       setUsers(users.user);
-      setIsLoading({ loading: false, error: null });
     };
 
     init();
   }, [token]);
-
-  if (isLoading) {
-    return <h1>loading...</h1>;
-  }
 
   return (
     <>

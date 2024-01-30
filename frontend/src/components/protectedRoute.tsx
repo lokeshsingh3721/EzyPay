@@ -1,6 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useRecoilState } from "recoil";
-import { atomLoadingState } from "../../store/atomLoading";
 
 interface MyComponentProps {
   children: ReactNode;
@@ -9,7 +8,6 @@ interface MyComponentProps {
 const ProtectedRoute: React.FC<MyComponentProps> = ({ children }) => {
   const [isValid, setIsValid] = useState(false);
   const token = localStorage.getItem("token");
-  const [isLoading, setIsLoading] = useRecoilState(atomLoadingState);
 
   useEffect(() => {
     const init = async () => {
@@ -26,21 +24,15 @@ const ProtectedRoute: React.FC<MyComponentProps> = ({ children }) => {
 
         const resData = await res.json();
         if (!resData.success) {
-          setIsLoading({ loading: false, error: null });
           return setIsValid(false);
         }
         setIsValid(true);
-        setIsLoading({ loading: false, error: null });
       } catch (error) {
         setIsValid(false);
       }
     };
     init();
-  }, [token, setIsLoading]);
-
-  if (isLoading.loading) {
-    return <h1>Loading...</h1>;
-  }
+  }, [token]);
 
   if (!isValid) {
     return <h1>sorry you are not signed in</h1>;
