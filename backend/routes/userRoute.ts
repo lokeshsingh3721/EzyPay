@@ -1,11 +1,11 @@
-const express = require("express");
-const {
-  signup,
+import express from "express";
+import {
   signin,
   update,
   filterUser,
   getUser,
-} = require("../handlers/userHandle");
+  signup,
+} from "../handlers/userHandle";
 const router = express.Router();
 
 const auth = require("../middlewares/auth");
@@ -16,4 +16,4 @@ router.put("/update", auth, update);
 router.get("/bulk", auth, filterUser);
 router.get("/getUser", auth, getUser);
 
-module.exports = router;
+export = router;

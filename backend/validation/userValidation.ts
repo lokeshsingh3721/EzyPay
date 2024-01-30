@@ -1,6 +1,6 @@
-const { z } = require("zod");
+import { z } from "zod";
 
-const signupValidation = z.object({
+export const signupValidation = z.object({
   username: z
     .string()
     .email()
@@ -21,12 +21,12 @@ const signupValidation = z.object({
     .max(30, { message: "firstName length cannot be more than 30" }),
 });
 
-const signinValidation = z.object({
+export const signinValidation = z.object({
   username: z.string().email(),
   password: z.string(),
 });
 
-const updateDetailsValidation = z.object({
+export const updateDetailsValidation = z.object({
   password: z
     .string()
     .min(6, { message: "password length cannot be less than 6" })
@@ -43,9 +43,3 @@ const updateDetailsValidation = z.object({
     .min(3, { message: "lastName length cannot be less than 3" })
     .optional(),
 });
-
-module.exports = {
-  signupValidation,
-  signinValidation,
-  updateDetailsValidation,
-};

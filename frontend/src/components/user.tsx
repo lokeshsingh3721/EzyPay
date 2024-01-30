@@ -2,7 +2,13 @@ import { CiUser } from "react-icons/ci";
 import { useSetRecoilState } from "recoil";
 import { atomModalDetailsState, modalState } from "../../store/atomModal";
 
-const User = ({ user }) => {
+interface User {
+  _id: string;
+  firstName: string;
+  lastName: string;
+}
+
+const User = ({ user }: any) => {
   const { _id: userId, firstName, lastName } = user;
   const setUserDataToModal = useSetRecoilState(atomModalDetailsState);
   const setModal = useSetRecoilState(modalState);

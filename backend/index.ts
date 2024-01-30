@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const app = express();
-const cors = require("cors");
-const morgan = require("morgan");
-const routeRouter = require("./routes/index");
-const dbConnect = require("../db");
+import cors from "cors";
+import morgan from "morgan";
+import routeRouter from "./routes/index";
+import { dbConnect } from "./db";
 
 const PORT = 3000;
 

@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useRecoilState } from "recoil";
 import { atomLoadingState } from "../../store/atomLoading";
 
-const ProtectedRoute = ({ children }) => {
+interface MyComponentProps {
+  children: ReactNode;
+}
+
+const ProtectedRoute: React.FC<MyComponentProps> = ({ children }) => {
   const [isValid, setIsValid] = useState(false);
   const token = localStorage.getItem("token");
   const [isLoading, setIsLoading] = useRecoilState(atomLoadingState);
@@ -22,11 +26,11 @@ const ProtectedRoute = ({ children }) => {
 
         const resData = await res.json();
         if (!resData.success) {
-          setIsLoading({ loading: false });
+          setIsLoading({ loading: false, error: null });
           return setIsValid(false);
         }
         setIsValid(true);
-        setIsLoading({ loading: false });
+        setIsLoading({ loading: false, error: null });
       } catch (error) {
         setIsValid(false);
       }

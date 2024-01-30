@@ -11,21 +11,25 @@ import toast, { Toaster } from "react-hot-toast";
 const Modal = () => {
   const { _id, firstName, lastName } = useRecoilValue(atomModalDetailsState);
   const [modal, setModal] = useRecoilState(modalState);
-  const [balance, setBalance] = useState("");
+  const [balance, setBalance] = useState(-1);
 
   const globalBalance = useSetRecoilState(atomBalanceState);
 
   const close = () => {
     setModal(false);
-    setBalance("");
+    setBalance(-1);
   };
 
-  const initiateTransfer = async (e) => {
+  const initiateTransfer = async (
+    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+  ) => {
     e.preventDefault();
     if (!balance) {
       return toast("invalid amount");
     }
-    const data = await transactionHandler(_id, balance);
+    let data;
+
+    if (_id && balance) data = await transactionHandler(_id, balance);
     if (data.success) {
       toast(`successfully transfered to ${firstName}`);
       globalBalance(data.balance);
@@ -64,7 +68,7 @@ const Modal = () => {
               type="number"
               placeholder="Enter amount"
               value={balance}
-              onChange={(e) => setBalance(e.target.value)}
+              onChange={(e) => setBalance(Number(e.target.value))}
               className="border-[1px] outline-none w-full py-1 pl-2"
             />
             <button

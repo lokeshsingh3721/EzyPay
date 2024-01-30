@@ -1,4 +1,9 @@
-export const handleSignUp = async (firstName, lastName, email, password) => {
+export const handleSignUp = async (
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string
+) => {
   try {
     const apiUrl = "http://localhost:3000/api/v1/user/signup";
     const response = await fetch(apiUrl, {
@@ -21,7 +26,7 @@ export const handleSignUp = async (firstName, lastName, email, password) => {
   }
 };
 
-export const handleSignIn = async (email, password) => {
+export const handleSignIn = async (email: string, password: string) => {
   try {
     const apiUrl = "http://localhost:3000/api/v1/user/signin";
     const response = await fetch(apiUrl, {

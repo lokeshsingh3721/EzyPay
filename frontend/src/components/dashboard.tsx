@@ -1,5 +1,4 @@
 import { LuLogOut } from "react-icons/lu";
-import User from "./user";
 import Modal from "./modal";
 
 import { useNavigate } from "react-router-dom";
@@ -8,9 +7,16 @@ import { userDetails } from "../../utility/userDetails";
 import { useRecoilState } from "recoil";
 import { atomBalanceState } from "../../store/atomBalance";
 import { atomLoadingState } from "../../store/atomLoading";
+import User from "./user";
+
+interface UserType {
+  _id: string;
+  firstName: string;
+  lastName: string;
+}
 
 const Dashboard = () => {
-  const token = localStorage.getItem("token");
+  let token: string | null = localStorage.getItem("token");
 
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState("user");
@@ -20,7 +26,7 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useRecoilState(atomLoadingState);
 
   const logout = () => {
-    localStorage.clear("token");
+    localStorage.clear();
     navigate("/signin");
   };
 
@@ -41,7 +47,7 @@ const Dashboard = () => {
       setFirstName(firstName.user.firstName);
       setBalance(balance.balance);
       setUsers(users.user);
-      setIsLoading(false);
+      setIsLoading({ loading: false, error: null });
     };
 
     init();
@@ -81,7 +87,7 @@ const Dashboard = () => {
             className="border-[1px] outline-none w-full py-1 pl-2 "
           />
           <div className="flex  flex-col gap-3">
-            {users.map((user) => {
+            {users.map((user: UserType) => {
               if (user.firstName != firstName)
                 return <User key={user._id} user={user} />;
             })}

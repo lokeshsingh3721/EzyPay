@@ -1,7 +1,14 @@
-const Bank = require("../models/bankModel");
-const mongoose = require("mongoose");
+import Bank from "../models/bankModel";
+import mongoose from "mongoose";
 
-const { bank } = require("../validation/accountValidation");
+import bank from "../validation/accountValidation";
+
+import { Request, Response } from "express";
+
+interface ReceiverDetails {
+  userId: string;
+  balance: number;
+}
 
 // async function deposit(userDetails) {
 //   try {
@@ -32,12 +39,13 @@ const { bank } = require("../validation/accountValidation");
 //   }
 // }
 
-async function transferFunds(req, res) {
+export async function transferFunds(req: Request, res: Response) {
   try {
-    let { userId, balance } = req.body;
+    let { userId, balance }: ReceiverDetails = req.body;
     balance = Number(balance);
     const receiverDetails = { userId, balance };
-    const senderId = req.userId;
+    let senderId: unknown = req.headers["userId"];
+
     const { success } = bank.safeParse({ userId, balance });
     if (!success) {
       return res.json({
@@ -46,19 +54,14 @@ async function transferFunds(req, res) {
       });
     }
 
-    if (
-      !(
-        (await getBalance(senderId, receiverDetails.balance)) >=
-        receiverDetails.balance
-      )
-    ) {
+    if (!((await getBalance(senderId)) >= receiverDetails.balance)) {
       return res.json({
         success: false,
         message: "low balance ",
       });
     }
 
-    const data = await transaction(senderId, receiverDetails);
+    const data: any = await transaction(senderId, receiverDetails);
     res.json({
       balance: data.sender.balance,
       success: true,
@@ -72,9 +75,9 @@ async function transferFunds(req, res) {
   }
 }
 
-async function balance(req, res) {
+export async function balance(req: Request, res: Response) {
   try {
-    const userId = req.userId;
+    const userId = req.headers["userId"];
     const balance = await getBalance(userId);
     res.json({
       success: true,
@@ -88,16 +91,22 @@ async function balance(req, res) {
   }
 }
 
-async function getBalance(userId) {
+async function getBalance(userId: unknown): Promise<number> {
   try {
     const balanceDetails = await Bank.findOne({ userId });
-    return balanceDetails.balance;
+    if (balanceDetails) {
+      return balanceDetails.balance;
+    }
+    return -1;
   } catch (error) {
-    return false;
+    return -1;
   }
 }
 
-async function transaction(senderId, receiverDetails) {
+export async function transaction(
+  senderId: unknown,
+  receiverDetails: ReceiverDetails
+) {
   const session = await mongoose.startSession();
 
   try {
@@ -144,5 +153,3 @@ async function transaction(senderId, receiverDetails) {
     session.endSession();
   }
 }
-
-module.exports = { transferFunds, balance };

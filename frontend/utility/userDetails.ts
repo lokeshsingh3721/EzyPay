@@ -1,4 +1,4 @@
-export const userDetails = async (URL, token) => {
+export const userDetails = async (URL: string, token: string | null) => {
   try {
     const res = await fetch(URL, {
       method: "GET",

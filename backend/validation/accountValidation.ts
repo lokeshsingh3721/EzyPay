@@ -1,8 +1,8 @@
-const { z } = require("zod");
+import { z } from "zod";
 
 const bank = z.object({
   userId: z.string(),
   balance: z.number(),
 });
 
-module.exports = { bank };
+export default bank;

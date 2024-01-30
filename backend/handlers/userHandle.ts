@@ -1,19 +1,24 @@
-const User = require("../models/userModel");
-const Bank = require("../models/bankModel");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
-require("dotenv").config();
+import User from "../models/userModel";
+import Bank from "../models/bankModel";
+import jwt, { Secret } from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import dotenv from "dotenv";
+dotenv.config();
 
-const {
+const SECRET: Secret = "NO_SECRET_KEY";
+
+import { Request, Response } from "express";
+
+import {
   signupValidation,
   signinValidation,
   updateDetailsValidation,
-} = require("../validation/userValidation");
+} from "../validation/userValidation";
 
-async function signup(req, res) {
+export async function signup(req: Request, res: Response) {
   try {
     let { username, password, firstName, lastName } = req.body;
-    const { success, error } = signupValidation.safeParse({
+    const { success } = signupValidation.safeParse({
       username,
       password,
       firstName,
@@ -44,7 +49,7 @@ async function signup(req, res) {
       firstName,
       lastName,
     });
-    const token = jwt.sign({ userId: data._id }, process.env.SECRET_KEY);
+    const token = jwt.sign({ userId: data._id }, SECRET);
 
     // depositing random number between 1 to 100000 in the bank
     const randomNumber = Math.floor(Math.random() * 10000) + 1;
@@ -58,20 +63,22 @@ async function signup(req, res) {
       message: "user successfully signed up",
       token,
     });
-  } catch (error) {
-    res.json({
-      error: error.message,
-    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.json({
+        error: error.message,
+      });
+    }
   }
 }
 
-async function signin(req, res) {
+export async function signin(req: Request, res: Response) {
   try {
     let { username, password } = req.body;
     username = username.toLowerCase();
 
     // input validation
-    const { success, error } = signinValidation.safeParse({
+    const { success } = signinValidation.safeParse({
       username,
       password,
     });
@@ -97,32 +104,34 @@ async function signin(req, res) {
         error: "invalid credentials",
       });
     }
-    const token = jwt.sign({ userId: user._id }, process.env.SECRET_KEY);
+    const token = jwt.sign({ userId: user._id }, SECRET);
     res.json({
       success: true,
       message: "successfully signed in",
       token,
     });
-  } catch (error) {
-    res.json({
-      success: false,
-      error: error.message,
-    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.json({
+        success: false,
+        error: error.message,
+      });
+    }
   }
 }
 
-async function update(req, res) {
+export async function update(req: Request, res: Response) {
   try {
-    const userId = req.userId;
+    const userId = req.headers["userId"];
     let details = req.body;
 
     // check if user exist or not in database
 
-    const { success, error } = updateDetailsValidation.safeParse(details);
+    const { success } = updateDetailsValidation.safeParse(details);
     if (!success) {
       return res.json({
         success: false,
-        message: error.issues[0].message,
+        message: "error while updating ",
       });
     }
     if (Object.keys(details).includes("password")) {
@@ -142,15 +151,17 @@ async function update(req, res) {
       message: "details updated successfully",
       details,
     });
-  } catch (error) {
-    res.json({
-      success: false,
-      error: error.message,
-    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.json({
+        success: false,
+        error: error.message,
+      });
+    }
   }
 }
 
-async function filterUser(req, res) {
+export async function filterUser(req: Request, res: Response) {
   try {
     const query = req.query;
 
@@ -181,16 +192,18 @@ async function filterUser(req, res) {
       message: "successfully fetched the user",
       user,
     });
-  } catch (error) {
-    res.json({
-      message: error.message,
-    });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.json({
+        message: error.message,
+      });
+    }
   }
 }
 
-async function getUser(req, res) {
+export async function getUser(req: Request, res: Response) {
   try {
-    const userId = req.userId;
+    const userId = req.headers["userId"];
     if (!userId) {
       return res.json({
         success: false,
@@ -219,10 +232,3 @@ async function getUser(req, res) {
     });
   }
 }
-module.exports = {
-  signup,
-  signin,
-  update,
-  filterUser,
-  getUser,
-};

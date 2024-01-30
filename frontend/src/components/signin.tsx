@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { ChangeEvent, MouseEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { handleSignIn } from "../../utility/submitHandler";
 
@@ -10,11 +10,14 @@ const SignIn = () => {
 
   const navigate = useNavigate();
 
-  const submit = async (e) => {
+  const submit = async (
+    e: MouseEvent<HTMLButtonElement, globalThis.MouseEvent>
+  ) => {
     e.preventDefault();
     const data = await handleSignIn(email, password);
     if (data.success) {
-      localStorage.setItem("token", data.token);
+      const token: string = data.token;
+      localStorage.setItem("token", token);
       navigate("/dashboard");
     } else {
       toast(`${data.error}`);

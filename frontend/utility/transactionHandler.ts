@@ -1,4 +1,4 @@
-export const transactionHandler = async (userId, balance) => {
+export const transactionHandler = async (userId: string, balance: number) => {
   try {
     console.log(userId, Number(balance));
     const token = localStorage.getItem("token");

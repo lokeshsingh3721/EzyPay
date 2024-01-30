@@ -13,7 +13,7 @@ const SignUp = () => {
   const [password, setPassword] = useState("");
   // const setLoadingState = useSetRecoilState(atomLoadingState);
 
-  const submit = async (e) => {
+  const submit = async (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     e.preventDefault();
     const data = await handleSignUp(firstName, lastName, email, password);
     if (data.success) {

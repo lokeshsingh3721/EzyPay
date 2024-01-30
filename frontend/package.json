@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "start": "concurrently \" npm run dev\" \"cd .. && cd backend backend && nodemon server.js\""
+    "start": "concurrently \" npm run dev\" \"cd .. && cd backend/dist && nodemon server.js\""
   },
   "dependencies": {
     "concurrently": "^8.2.2",
@@ -31,6 +31,7 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "postcss": "^8.4.33",
     "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3",
     "vite": "^5.0.8"
   }
 }
