@@ -1,15 +1,7 @@
-import mongoose, { Schema } from "mongoose";
+import { client } from "../db";
 
-const schema = new mongoose.Schema({
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: "UserModel",
-    required: true,
-  },
-  balance: {
-    type: Number,
-    required: true,
-  },
-});
-
-export = mongoose.model("Bank", schema);
+export async function BankTable() {
+  const table = await client.query(
+    "CREATE TABLE IF NOT EXISTS account (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), userId UUID UNIQUE NOT NULL, balance INT NOT NULL, FOREIGN KEY (userId) REFERENCES user_details(id))"
+  );
+}

@@ -13,35 +13,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.transaction = exports.balance = exports.transferFunds = void 0;
-const bankModel_1 = __importDefault(require("../models/bankModel"));
-const mongoose_1 = __importDefault(require("mongoose"));
+const db_1 = require("../db");
 const accountValidation_1 = __importDefault(require("../validation/accountValidation"));
-// async function deposit(userDetails) {
-//   try {
-//     const { userId, balance } = userDetails;
-//     const user = await Bank.findOne({ userId: userId });
-//     if (!user) {
-//       const deposit = await Bank.create(userDetails);
-//       return {
-//         message: "successfully deposited in your account",
-//         deposit,
-//       };
-//     }
-//     const updatedDeposit = await Bank.findOneAndUpdate(
-//       { userId: userId }, // Query criteria
-//       { $inc: { balance: balance } }, // Update operation
-//       { new: true }
-//     );
-//     return {
-//       message: "successfully deposited in your account",
-//       updatedDeposit,
-//     };
-//   } catch (error) {
-//     return {
-//       message: "internal server occured",
-//     };
-//   }
-// }
+// // async function deposit(userDetails) {
+// //   try {
+// //     const { userId, balance } = userDetails;
+// //     const user = await Bank.findOne({ userId: userId });
+// //     if (!user) {
+// //       const deposit = await Bank.create(userDetails);
+// //       return {
+// //         message: "successfully deposited in your account",
+// //         deposit,
+// //       };
+// //     }
+// //     const updatedDeposit = await Bank.findOneAndUpdate(
+// //       { userId: userId }, // Query criteria
+// //       { $inc: { balance: balance } }, // Update operation
+// //       { new: true }
+// //     );
+// //     return {
+// //       message: "successfully deposited in your account",
+// //       updatedDeposit,
+// //     };
+// //   } catch (error) {
+// //     return {
+// //       message: "internal server occured",
+// //     };
+// //   }
+// // }
 function transferFunds(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -64,9 +63,7 @@ function transferFunds(req, res) {
             }
             const data = yield transaction(senderId, receiverDetails);
             res.json({
-                balance: data.sender.balance,
-                success: true,
-                message: "successfully transfered the balance ",
+                data,
             });
         }
         catch (error) {
@@ -100,9 +97,12 @@ exports.balance = balance;
 function getBalance(userId) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const balanceDetails = yield bankModel_1.default.findOne({ userId });
-            if (balanceDetails) {
-                return balanceDetails.balance;
+            const balanceDetails = yield db_1.client.query(`
+      SELECT balance FROM account
+      WHERE userId = $1;
+    `, [userId]);
+            if (balanceDetails.rows.length > 0) {
+                return balanceDetails.rows[0].balance;
             }
             return -1;
         }
@@ -113,36 +113,47 @@ function getBalance(userId) {
 }
 function transaction(senderId, receiverDetails) {
     return __awaiter(this, void 0, void 0, function* () {
-        const session = yield mongoose_1.default.startSession();
         try {
-            session.startTransaction();
-            // Note: we should pass the session but not doing it because i m lazy
-            let sender = yield bankModel_1.default.findOne({ userId: senderId });
-            if (!sender) {
-                throw new Error("Sender account not found");
+            yield db_1.client.query("BEGIN;"); // starting the transaction
+            let sender = yield db_1.client.query("SELECT * FROM account WHERE userId=$1;", [
+                senderId,
+            ]);
+            if (sender.rows.length == 0) {
+                return {
+                    success: false,
+                    message: "Sender account not found",
+                };
             }
-            let receiver = yield bankModel_1.default.findOne({
-                userId: receiverDetails.userId,
-            });
-            if (!receiver) {
-                throw new Error("Receiver account not found");
+            let receiver = yield db_1.client.query("SELECT * FROM account WHERE userId=$1;", [receiverDetails.userId]);
+            if (receiver.rows.length == 0) {
+                return {
+                    success: false,
+                    message: "Reciever account not found",
+                };
             }
-            sender = yield bankModel_1.default.findOneAndUpdate({ userId: senderId }, { $inc: { balance: -receiverDetails.balance } }, { new: true });
-            receiver = yield bankModel_1.default.findOneAndUpdate({ userId: receiverDetails.userId }, { $inc: { balance: receiverDetails.balance } }, { new: true });
-            yield session.commitTransaction();
+            sender = yield db_1.client.query(`
+    UPDATE account 
+    SET balance = balance - $1
+    WHERE userId = $2 RETURNING *;
+    `, [receiverDetails.balance, senderId]);
+            receiver = yield db_1.client.query(`
+    UPDATE account 
+    SET balance = balance + $1
+    WHERE userId = $2 RETURNING *;
+    `, [receiverDetails.balance, receiverDetails.userId]);
+            yield db_1.client.query("COMMIT;"); // committing the transaction
             return {
-                sender,
-                receiver,
+                success: true,
+                balance: sender.rows[0].balance,
             };
         }
         catch (error) {
-            yield session.abortTransaction();
-            return {
-                message: "failed",
-            };
-        }
-        finally {
-            session.endSession();
+            yield db_1.client.query("ROLLBACK;"); // rollback on any error
+            if (error instanceof Error) {
+                return {
+                    message: error.message,
+                };
+            }
         }
     });
 }

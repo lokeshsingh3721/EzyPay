@@ -8,24 +8,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.dbConnect = void 0;
-const mongoose_1 = __importDefault(require("mongoose"));
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-const URL = "mongodb://localhost:27017";
-const dbConnect = () => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        yield mongoose_1.default.connect(URL);
-        console.log("DB connected successfully");
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            console.error("Error while connecting to the database:", error.message);
-        }
-    }
+exports.dbConnect = exports.client = void 0;
+const pg_1 = require("pg");
+const userModel_1 = require("./models/userModel");
+const bankModel_1 = require("./models/bankModel");
+exports.client = new pg_1.Client({
+    host: "localhost",
+    port: 5432,
+    database: "paytm",
+    user: "postgres",
+    password: "Lokesh3721@#",
 });
+function dbConnect() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            exports.client.connect((err) => __awaiter(this, void 0, void 0, function* () {
+                if (err) {
+                    console.log(err);
+                }
+                else {
+                    yield (0, userModel_1.UserTable)();
+                    yield (0, bankModel_1.BankTable)();
+                    console.log("connected");
+                }
+            }));
+        }
+        catch (error) {
+            if (error instanceof Error) {
+                console.log(error.message);
+            }
+        }
+    });
+}
 exports.dbConnect = dbConnect;

@@ -13,11 +13,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUser = exports.filterUser = exports.update = exports.signin = exports.signup = void 0;
-const userModel_1 = __importDefault(require("../models/userModel"));
-const bankModel_1 = __importDefault(require("../models/bankModel"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const db_1 = require("../db");
 dotenv_1.default.config();
 const SECRET = "NO_SECRET_KEY";
 const userValidation_1 = require("../validation/userValidation");
@@ -38,10 +37,8 @@ function signup(req, res) {
                 });
             }
             // if user already exist or not
-            const userExist = yield userModel_1.default.findOne({
-                username,
-            });
-            if (userExist) {
+            const userExist = yield db_1.client.query("SELECT * FROM user_details WHERE username=$1;", [username]);
+            if (userExist.rows.length > 0) {
                 return res.json({
                     success: false,
                     error: `user already exist with the username ${username}`,
@@ -49,19 +46,13 @@ function signup(req, res) {
             }
             password = yield bcrypt_1.default.hash(password, 10);
             username = username.toLowerCase();
-            const data = yield userModel_1.default.create({
-                username,
-                password,
-                firstName,
-                lastName,
-            });
-            const token = jsonwebtoken_1.default.sign({ userId: data._id }, SECRET);
-            // depositing random number between 1 to 100000 in the bank
+            const data = yield db_1.client.query("INSERT INTO user_details(username,password,first_name,last_name) VALUES($1,$2,$3,$4) RETURNING *;", [username, password, firstName, lastName]);
+            const token = jsonwebtoken_1.default.sign({ userId: data.rows[0].id }, SECRET);
+            // // depositing random number between 1 to 100000 in the bank
             const randomNumber = Math.floor(Math.random() * 10000) + 1;
-            yield bankModel_1.default.create({
-                userId: data._id,
-                balance: randomNumber,
-            });
+            yield db_1.client.query(`
+    INSERT INTO account(userId,balance) VALUES($1,$2);
+    `, [data.rows[0].id, randomNumber]);
             res.json({
                 success: true,
                 message: "user successfully signed up",
@@ -70,6 +61,7 @@ function signup(req, res) {
         }
         catch (error) {
             if (error instanceof Error) {
+                console.log(error);
                 res.json({
                     error: error.message,
                 });
@@ -95,21 +87,21 @@ function signin(req, res) {
                 });
             }
             // find the user
-            let user = yield userModel_1.default.findOne({ username });
-            if (!user) {
+            let user = yield db_1.client.query("SELECT username,password,id FROM user_details WHERE username = $1;", [username]);
+            if (user.rows.length == 0) {
                 return res.json({
                     success: false,
                     error: "user does not exist",
                 });
             }
-            const hashedPassword = yield bcrypt_1.default.compare(password, user.password);
+            const hashedPassword = yield bcrypt_1.default.compare(password, user.rows[0].password);
             if (!hashedPassword) {
                 return res.json({
                     success: false,
                     error: "invalid credentials",
                 });
             }
-            const token = jsonwebtoken_1.default.sign({ userId: user._id }, SECRET);
+            const token = jsonwebtoken_1.default.sign({ userId: user.rows[0].id }, SECRET);
             res.json({
                 success: true,
                 message: "successfully signed in",
@@ -143,8 +135,17 @@ function update(req, res) {
             if (Object.keys(details).includes("password")) {
                 details.password = yield bcrypt_1.default.hash(details.password, 10);
             }
-            const user = yield userModel_1.default.findByIdAndUpdate(userId, details, { new: true });
-            if (!user) {
+            const valuesArray = Object.entries(details).map(([key, value]) => value);
+            const user = yield db_1.client.query(`UPDATE user_details
+       SET
+       ${Object.entries(details)
+                .map((entry, index) => {
+                return `${entry[0]} = $${index + 1}`;
+            })
+                .join(", ")} 
+       WHERE id = $${Object.entries(details).length + 1} RETURNING * ;`, [...valuesArray, userId]);
+            console.log(user);
+            if (user.rows[0].length == 0) {
                 return res.json({
                     success: false,
                     message: "user does not exist ",
@@ -158,6 +159,7 @@ function update(req, res) {
         }
         catch (error) {
             if (error instanceof Error) {
+                console.log(error);
                 res.json({
                     success: false,
                     error: error.message,
@@ -171,21 +173,21 @@ function filterUser(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const query = req.query;
-            const user = yield userModel_1.default.find({
-                $or: [
-                    {
-                        firstName: {
-                            $regex: query.filter,
-                        },
-                    },
-                    {
-                        lastName: {
-                            $regex: query.filter,
-                        },
-                    },
-                ],
-            }).select("firstName lastName");
-            if (user.length == 0) {
+            let user;
+            console.log(query.filter);
+            if (query.filter) {
+                user = yield db_1.client.query(`
+        SELECT first_name,last_name,id FROM user_details
+        WHERE 
+            first_name=$1 OR last_name=$1
+      `, [query.filter || null]);
+            }
+            else {
+                user = yield db_1.client.query(`
+          SELECT first_name,last_name , id FROM user_details
+        `);
+            }
+            if (user.rows.length == 0) {
                 return res.json({
                     success: false,
                     message: "user does not found",
@@ -194,7 +196,7 @@ function filterUser(req, res) {
             res.json({
                 success: true,
                 message: "successfully fetched the user",
-                user,
+                user: user.rows,
             });
         }
         catch (error) {
@@ -217,8 +219,12 @@ function getUser(req, res) {
                     message: "invalid userId",
                 });
             }
-            const user = yield userModel_1.default.findOne({ _id: userId }).select("firstName");
-            if (!user) {
+            const user = yield db_1.client.query(`
+      SELECT first_name FROM user_details
+      WHERE 
+          id=$1
+    `, [userId]);
+            if (user.rows.length === 0) {
                 return res.json({
                     success: false,
                     message: "user does not found",
@@ -227,7 +233,7 @@ function getUser(req, res) {
             return res.json({
                 success: true,
                 message: "successfully fetched the user",
-                user,
+                user: user.rows[0],
             });
         }
         catch (error) {
