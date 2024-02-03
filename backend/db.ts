@@ -1,16 +1,29 @@
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
+import { Client } from "pg";
+import { UserTable } from "./models/userModel";
+import { BankTable } from "./models/bankModel";
 
-const URL: string = "mongodb://localhost:27017";
+export const client = new Client({
+  host: "localhost",
+  port: 5432,
+  database: "paytm",
+  user: "postgres",
+  password: "Lokesh3721@#",
+});
 
-export const dbConnect = async () => {
+export async function dbConnect() {
   try {
-    await mongoose.connect(URL);
-    console.log("DB connected successfully");
+    client.connect(async (err) => {
+      if (err) {
+        console.log(err);
+      } else {
+        await UserTable();
+        await BankTable();
+        console.log("connected");
+      }
+    });
   } catch (error: unknown) {
     if (error instanceof Error) {
-      console.error("Error while connecting to the database:", error.message);
+      console.log(error.message);
     }
   }
-};
+}

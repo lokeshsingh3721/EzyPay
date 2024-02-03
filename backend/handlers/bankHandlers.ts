@@ -1,43 +1,42 @@
-import Bank from "../models/bankModel";
-import mongoose from "mongoose";
-
-import bank from "../validation/accountValidation";
+import { client } from "../db";
 
 import { Request, Response } from "express";
+import bank from "../validation/accountValidation";
+import { error } from "console";
 
 interface ReceiverDetails {
   userId: string;
   balance: number;
 }
 
-// async function deposit(userDetails) {
-//   try {
-//     const { userId, balance } = userDetails;
-//     const user = await Bank.findOne({ userId: userId });
-//     if (!user) {
-//       const deposit = await Bank.create(userDetails);
-//       return {
-//         message: "successfully deposited in your account",
-//         deposit,
-//       };
-//     }
+// // async function deposit(userDetails) {
+// //   try {
+// //     const { userId, balance } = userDetails;
+// //     const user = await Bank.findOne({ userId: userId });
+// //     if (!user) {
+// //       const deposit = await Bank.create(userDetails);
+// //       return {
+// //         message: "successfully deposited in your account",
+// //         deposit,
+// //       };
+// //     }
 
-//     const updatedDeposit = await Bank.findOneAndUpdate(
-//       { userId: userId }, // Query criteria
-//       { $inc: { balance: balance } }, // Update operation
-//       { new: true }
-//     );
+// //     const updatedDeposit = await Bank.findOneAndUpdate(
+// //       { userId: userId }, // Query criteria
+// //       { $inc: { balance: balance } }, // Update operation
+// //       { new: true }
+// //     );
 
-//     return {
-//       message: "successfully deposited in your account",
-//       updatedDeposit,
-//     };
-//   } catch (error) {
-//     return {
-//       message: "internal server occured",
-//     };
-//   }
-// }
+// //     return {
+// //       message: "successfully deposited in your account",
+// //       updatedDeposit,
+// //     };
+// //   } catch (error) {
+// //     return {
+// //       message: "internal server occured",
+// //     };
+// //   }
+// // }
 
 export async function transferFunds(req: Request, res: Response) {
   try {
@@ -63,9 +62,7 @@ export async function transferFunds(req: Request, res: Response) {
 
     const data: any = await transaction(senderId, receiverDetails);
     res.json({
-      balance: data.sender.balance,
-      success: true,
-      message: "successfully transfered the balance ",
+      data,
     });
   } catch (error) {
     res.json({
@@ -93,9 +90,15 @@ export async function balance(req: Request, res: Response) {
 
 async function getBalance(userId: unknown): Promise<number> {
   try {
-    const balanceDetails = await Bank.findOne({ userId });
-    if (balanceDetails) {
-      return balanceDetails.balance;
+    const balanceDetails = await client.query(
+      `
+      SELECT balance FROM account
+      WHERE userId = $1;
+    `,
+      [userId]
+    );
+    if (balanceDetails.rows.length > 0) {
+      return balanceDetails.rows[0].balance;
     }
     return -1;
   } catch (error) {
@@ -107,49 +110,63 @@ export async function transaction(
   senderId: unknown,
   receiverDetails: ReceiverDetails
 ) {
-  const session = await mongoose.startSession();
-
   try {
-    session.startTransaction();
-    // Note: we should pass the session but not doing it because i m lazy
-    let sender = await Bank.findOne({ userId: senderId });
+    await client.query("BEGIN;"); // starting the transaction
 
-    if (!sender) {
-      throw new Error("Sender account not found");
+    let sender = await client.query("SELECT * FROM account WHERE userId=$1;", [
+      senderId,
+    ]);
+
+    if (sender.rows.length == 0) {
+      return {
+        success: false,
+        message: "Sender account not found",
+      };
     }
 
-    let receiver = await Bank.findOne({
-      userId: receiverDetails.userId,
-    });
+    let receiver = await client.query(
+      "SELECT * FROM account WHERE userId=$1;",
+      [receiverDetails.userId]
+    );
 
-    if (!receiver) {
-      throw new Error("Receiver account not found");
+    if (receiver.rows.length == 0) {
+      return {
+        success: false,
+        message: "Reciever account not found",
+      };
     }
 
-    sender = await Bank.findOneAndUpdate(
-      { userId: senderId },
-      { $inc: { balance: -receiverDetails.balance } },
-      { new: true }
+    sender = await client.query(
+      `
+    UPDATE account 
+    SET balance = balance - $1
+    WHERE userId = $2 RETURNING *;
+    `,
+      [receiverDetails.balance, senderId]
     );
 
-    receiver = await Bank.findOneAndUpdate(
-      { userId: receiverDetails.userId },
-      { $inc: { balance: receiverDetails.balance } },
-      { new: true }
+    receiver = await client.query(
+      `
+    UPDATE account 
+    SET balance = balance + $1
+    WHERE userId = $2 RETURNING *;
+    `,
+      [receiverDetails.balance, receiverDetails.userId]
     );
 
-    await session.commitTransaction();
+    await client.query("COMMIT;"); // committing the transaction
 
     return {
-      sender,
-      receiver,
+      success: true,
+      balance: sender.rows[0].balance,
     };
-  } catch (error) {
-    await session.abortTransaction();
-    return {
-      message: "failed",
-    };
-  } finally {
-    session.endSession();
+  } catch (error: unknown) {
+    await client.query("ROLLBACK;"); // rollback on any error
+
+    if (error instanceof Error) {
+      return {
+        message: error.message,
+      };
+    }
   }
 }

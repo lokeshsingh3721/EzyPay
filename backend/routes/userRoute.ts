@@ -1,10 +1,10 @@
 import express from "express";
 import {
   signin,
+  signup,
   update,
   filterUser,
   getUser,
-  signup,
 } from "../handlers/userHandle";
 const router = express.Router();
 

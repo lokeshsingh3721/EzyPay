@@ -1,7 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __importDefault =
+  (this && this.__importDefault) ||
+  function (mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const app = (0, express_1.default)();
@@ -20,5 +22,5 @@ app.use("/api/v1", index_1.default);
 // connecting to the database
 (0, db_1.dbConnect)();
 app.listen(PORT, () => {
-    console.log("app is listening to the port " + PORT);
+  console.log("app is listening to the port " + PORT);
 });

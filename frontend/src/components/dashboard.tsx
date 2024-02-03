@@ -9,16 +9,16 @@ import { atomBalanceState } from "../../store/atomBalance";
 import User from "./user";
 
 interface UserType {
-  _id: string;
-  firstName: string;
-  lastName: string;
+  id: string;
+  first_name: string;
+  last_name: string;
 }
 
 const Dashboard = () => {
   let token: string | null = localStorage.getItem("token");
 
   const navigate = useNavigate();
-  const [firstName, setFirstName] = useState("user");
+  const [firstName, setFirstName] = useState("");
   const [balance, setBalance] = useRecoilState(atomBalanceState);
   const [users, setUsers] = useState([]);
 
@@ -33,15 +33,18 @@ const Dashboard = () => {
         "http://localhost:3000/api/v1/user/getUser",
         token
       );
+
       const balance = await userDetails(
         "http://localhost:3000/api/v1/account/balance",
         token
       );
+
       const users = await userDetails(
         "http://localhost:3000/api/v1/user/bulk?filter",
         token
       );
-      setFirstName(firstName.user.firstName);
+
+      setFirstName(firstName.user.first_name);
       setBalance(balance.balance);
       setUsers(users.user);
     };
@@ -80,8 +83,8 @@ const Dashboard = () => {
           />
           <div className="flex  flex-col gap-3">
             {users.map((user: UserType) => {
-              if (user.firstName != firstName)
-                return <User key={user._id} user={user} />;
+              if (user.first_name != firstName)
+                return <User key={user.id} user={user} />;
             })}
           </div>
         </div>

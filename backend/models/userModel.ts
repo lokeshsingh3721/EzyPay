@@ -1,31 +1,8 @@
-import mongoose from "mongoose";
+import pg from "pg";
+import { client } from "../db";
 
-const Schema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-    unique: true,
-    maxLength: 30,
-    minLength: 3,
-    trim: true,
-  },
-  password: {
-    type: String,
-    required: true,
-    minLength: 6,
-  },
-  firstName: {
-    type: String,
-    required: true,
-    maxLength: 30,
-    trim: true,
-  },
-  lastName: {
-    type: String,
-    required: true,
-    maxLength: 30,
-    trim: true,
-  },
-});
-
-export = mongoose.model("UserModel", Schema);
+export async function UserTable() {
+  const table = await client.query(
+    "CREATE TABLE IF NOT EXISTS user_details (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, first_name TEXT NOT NULL, last_name TEXT NOT NULL)"
+  );
+}

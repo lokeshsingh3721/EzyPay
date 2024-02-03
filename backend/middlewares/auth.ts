@@ -24,7 +24,6 @@ function auth(req: Request, res: Response, next: NextFunction) {
         message: "invalid token",
       });
     }
-
     req.headers["userId"] = payload.userId;
 
     next();

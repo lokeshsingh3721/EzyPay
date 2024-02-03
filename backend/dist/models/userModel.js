@@ -1,33 +1,19 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
 };
-const mongoose_1 = __importDefault(require("mongoose"));
-const Schema = new mongoose_1.default.Schema({
-    username: {
-        type: String,
-        required: true,
-        unique: true,
-        maxLength: 30,
-        minLength: 3,
-        trim: true,
-    },
-    password: {
-        type: String,
-        required: true,
-        minLength: 6,
-    },
-    firstName: {
-        type: String,
-        required: true,
-        maxLength: 30,
-        trim: true,
-    },
-    lastName: {
-        type: String,
-        required: true,
-        maxLength: 30,
-        trim: true,
-    },
-});
-module.exports = mongoose_1.default.model("UserModel", Schema);
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.UserTable = void 0;
+const db_1 = require("../db");
+function UserTable() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const table = yield db_1.client.query("CREATE TABLE IF NOT EXISTS user_details (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, first_name TEXT NOT NULL, last_name TEXT NOT NULL)");
+    });
+}
+exports.UserTable = UserTable;
